@@ -1,18 +1,22 @@
+# backend.py
 import sys
+import argparse
 from configparser import ConfigParser
 from chatbot import ChatBot
 import webbrowser
 from selenium import webdriver
 from bs4 import BeautifulSoup
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Dark Pattern Detector')
+    parser.add_argument('--url', type=str, help='URL of the terms and conditions page')
+    return parser.parse_args()
+
 def generate_html(output_text):
-    # Replace newline characters with <br> for line breaks
     html_content = output_text.replace('\n', '<br>')
 
-    # Replace '*' with <b> and </b> for bold formatting
     html_content = html_content.replace('*', '<b>').replace('</b>', '</b>')
 
-    # Create an HTML file with the chatbot response
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -56,7 +60,7 @@ def generate_html(output_text):
         html_file.write(html_content)
 
 def scrape_content_from_url(url):
-    driver = webdriver.Edge()  
+    driver = webdriver.Edge()
     driver.get(url)
 
     soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -66,7 +70,11 @@ def scrape_content_from_url(url):
     return visible_text
 
 def main():
-    url = "file:///C:/Users/kushp/Downloads/Dark%20Pattern%20Hackathon%20(3).pdf"
+    args = parse_arguments()
+    url = args.url
+
+    if not url:
+        sys.exit('Error: URL is required.')
 
     content = scrape_content_from_url(url)
 
@@ -76,36 +84,27 @@ def main():
     print(f'Content extracted from the page and saved to "output.txt".')
 
     try:
-        # Read API key from credentials.ini
         config = ConfigParser()
         config.read('credentials.ini')
         api_key = config['gemini_ai']['API_KEY']
 
-        # Initialize ChatBot with API key
         chatbot = ChatBot(api_key=api_key)
         chatbot.start_conversation()
 
-        # Open output.txt in read mode
         with open("output.txt", "r+", encoding="utf-8") as f1:
-            # Read user input from the file
+
             user_input = f1.read()
-            # print(user_input)
-            #user_input = "quit"
             prompt = "detect the potential dark patterns in the following and list them in bullet points: "
-            # Combine prompt and user input
+
             user_input = prompt + '\n' + user_input
 
-            # Check if the user wants to quit
             if user_input.lower() == 'quit':
                 sys.exit('Exiting Chatbot CLI...')
 
-        # Send prompt to ChatBot and get the response
         response = chatbot.send_prompt(user_input)
 
-        # Print the response
         print(f"{chatbot.CHATBOT_NAME}: {response}")
 
-        # Generate HTML file with the formatted chatbot response
         generate_html(response)
 
         webbrowser.open('chatbot_response.html', new=2)
