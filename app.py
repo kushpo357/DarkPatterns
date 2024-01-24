@@ -12,7 +12,7 @@ def index():
 def run_hello():
     try:
         # Run the hello.py file using subprocess
-        subprocess.run(['python', 'hello.py'])
+        subprocess.run(['python', 'backend.py'])
         return 'Python file executed successfully!'
 
     except Exception as e:
