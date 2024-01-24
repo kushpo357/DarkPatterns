@@ -6,6 +6,7 @@ from chatbot import ChatBot
 import webbrowser
 from selenium import webdriver
 from bs4 import BeautifulSoup
+import base64
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Dark Pattern Detector')
@@ -69,6 +70,15 @@ def scrape_content_from_url(url):
     driver.quit()
     return visible_text
 
+def encrypt_data(data):
+    encrypted_data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
+    return encrypted_data
+
+def decrypt_data(encrypted_data):
+    decrypted_data = base64.b64decode(encrypted_data.encode('utf-8')).decode('utf-8')
+    return decrypted_data
+
+
 def main():
     args = parse_arguments()
     url = args.url
@@ -78,10 +88,13 @@ def main():
 
     content = scrape_content_from_url(url)
 
-    with open('output.txt', 'w', encoding='utf-8') as file:
-        file.write(content)
+    # Encrypt the data before saving it to output.txt
+    encrypted_content = encrypt_data(content)
 
-    print(f'Content extracted from the page and saved to "output.txt".')
+    with open('output.txt', 'w', encoding='utf-8') as file:
+        file.write(encrypted_content)
+
+    print(f'Content extracted from the page and encrypted data saved to "output.txt".')
 
     try:
         config = ConfigParser()
@@ -91,11 +104,13 @@ def main():
         chatbot = ChatBot(api_key=api_key)
         chatbot.start_conversation()
 
-        with open("output.txt", "r+", encoding="utf-8") as f1:
+        with open("output.txt", "r", encoding="utf-8") as f1:
+            encrypted_user_input = f1.read()
 
-            user_input = f1.read()
-            prompt = "detect the potential dark patterns in the following and list them in bullet points: "
+            # Decrypt the data before sending it to Gemini AI
+            user_input = decrypt_data(encrypted_user_input)
 
+            prompt = "read through the terms and conditions, and report back with any red flags and heads-up message in it in bullet points, in less than 200 words and make sure you dont type this 'sure' thing when you give the answer to the prompt"
             user_input = prompt + '\n' + user_input
 
             if user_input.lower() == 'quit':
